@@ -7,13 +7,15 @@ import { formatDate, formatINR } from '../../utils/format.js';
 export default function HostDashboard() {
   const [listings, setListings] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
 
   const load = () => {
-    Promise.all([api.get('/listings/mine'), api.get('/bookings/host')])
-      .then(([l, b]) => {
+    Promise.all([api.get('/listings/mine'), api.get('/bookings/host'), api.get('/bookings/host/stats')])
+      .then(([l, b, s]) => {
         setListings(l.data);
         setBookings(b.data);
+        setStats(s.data);
       })
       .catch((err) => setError(getErrorMessage(err)));
   };
@@ -36,12 +38,30 @@ export default function HostDashboard() {
   if (error) return <p className="error">{error}</p>;
   if (!listings) return <Loader />;
 
-  // TODO: earnings summary cards (total earnings, upcoming check-ins, occupancy).
   return (
     <section>
       <div className="row-between">
         <h1>Host Dashboard</h1>
         <Link to="/host/listings/new" className="btn">+ New listing</Link>
+      </div>
+
+      <div className="stats-grid" aria-label="Host summary">
+        <div className="card stat-card">
+          <span className="muted">Completed stay earnings</span>
+          <strong>{formatINR(stats?.totalEarnings || 0)}</strong>
+        </div>
+        <div className="card stat-card">
+          <span className="muted">Check-ins in the next 7 days</span>
+          <strong>{stats?.upcomingCheckIns ?? 0}</strong>
+        </div>
+        <div className="card stat-card">
+          <span className="muted">Pending requests</span>
+          <strong>{stats?.pendingRequests ?? 0}</strong>
+        </div>
+        <div className="card stat-card">
+          <span className="muted">Average listing rating</span>
+          <strong>{stats?.averageRating ? `★ ${stats.averageRating}` : 'No ratings yet'}</strong>
+        </div>
       </div>
 
       <h2>Booking requests</h2>

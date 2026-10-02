@@ -91,7 +91,7 @@ export const cancelBooking = asyncHandler(async (req, res) => {
 // PATCH /api/bookings/:id/status (host of the listing)
 export const updateBookingStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
-  const booking = await Booking.findById(req.params.id).populate('listing', 'host');
+  const booking = await Booking.findById(req.params.id).populate('listing', 'host isActive');
   if (!booking) {
     res.status(404);
     throw new Error('Booking not found');
@@ -103,6 +103,10 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   if (!['confirmed', 'cancelled', 'completed'].includes(status)) {
     res.status(400);
     throw new Error('Invalid status');
+  }
+  if (status === 'confirmed' && !booking.listing.isActive) {
+    res.status(409);
+    throw new Error('This listing is no longer accepting bookings');
   }
   booking.status = status;
   await booking.save();

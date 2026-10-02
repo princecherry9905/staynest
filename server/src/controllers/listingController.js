@@ -60,7 +60,7 @@ const findOwnedListing = async (req, res) => {
 // PUT /api/listings/:id (owner host)
 export const updateListing = asyncHandler(async (req, res) => {
   const listing = await findOwnedListing(req, res);
-  const { host, avgRating, reviewCount, ...updates } = req.body; // protected fields
+  const { host, avgRating, reviewCount, isActive, ...updates } = req.body; // protected fields
   Object.assign(listing, updates);
   await listing.save();
   res.json(listing);
@@ -69,9 +69,19 @@ export const updateListing = asyncHandler(async (req, res) => {
 // DELETE /api/listings/:id (owner host)
 export const deleteListing = asyncHandler(async (req, res) => {
   const listing = await findOwnedListing(req, res);
-  await listing.deleteOne();
-  // TODO: what should happen to existing bookings and reviews? See issue tracker.
-  res.json({ message: 'Listing deleted' });
+  const hasUpcomingConfirmedBooking = await Booking.exists({
+    listing: listing._id,
+    status: 'confirmed',
+    checkOut: { $gt: new Date() },
+  });
+  if (hasUpcomingConfirmedBooking) {
+    res.status(409);
+    throw new Error('This listing has an upcoming confirmed booking and cannot be deactivated yet');
+  }
+
+  listing.isActive = false;
+  await listing.save();
+  res.json({ message: 'Listing deactivated' });
 });
 
 // GET /api/listings/:id/reviews

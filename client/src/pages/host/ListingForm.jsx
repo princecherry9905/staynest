@@ -10,6 +10,8 @@ const empty = {
   city: '',
   state: '',
   address: '',
+  latitude: '',
+  longitude: '',
   pricePerNight: '',
   maxGuests: 2,
   bedrooms: 1,
@@ -32,6 +34,8 @@ export default function ListingForm() {
         ...data,
         amenities: data.amenities.join(', '),
         imageUrl: data.images[0] || '',
+        latitude: data.location?.lat ?? '',
+        longitude: data.location?.lng ?? '',
       })
     );
   }, [id, isEdit]);
@@ -43,6 +47,12 @@ export default function ListingForm() {
     e.preventDefault();
     setError('');
     const { title, description, type, city, state, address, imageUrl, amenities } = form;
+    const lat = Number(form.latitude);
+    const lng = Number(form.longitude);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      setError('Enter valid latitude and longitude values for the map.');
+      return;
+    }
     const payload = {
       title,
       description,
@@ -50,6 +60,7 @@ export default function ListingForm() {
       city,
       state,
       address,
+      location: { lat, lng },
       pricePerNight: Number(form.pricePerNight),
       maxGuests: Number(form.maxGuests),
       bedrooms: Number(form.bedrooms),
@@ -81,6 +92,14 @@ export default function ListingForm() {
         <input required placeholder="State" value={form.state} onChange={set('state')} />
       </div>
       <input required placeholder="Address" value={form.address} onChange={set('address')} />
+      <div className="row">
+        <label className="grow">Latitude
+          <input required type="number" min="-90" max="90" step="any" value={form.latitude} onChange={set('latitude')} />
+        </label>
+        <label className="grow">Longitude
+          <input required type="number" min="-180" max="180" step="any" value={form.longitude} onChange={set('longitude')} />
+        </label>
+      </div>
       <div className="row">
         <label className="grow">Max guests
           <input type="number" min="1" value={form.maxGuests} onChange={set('maxGuests')} />

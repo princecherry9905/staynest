@@ -9,29 +9,42 @@ const initial = { city: '', type: '', guests: '', maxPrice: '' };
 export default function Home() {
   const [filters, setFilters] = useState(initial);
   const [listings, setListings] = useState([]);
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('newest');
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const search = (params) => {
+  const search = (params, nextPage = 1, nextSort = 'newest') => {
     setLoading(true);
     setError('');
     const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== ''));
     api
-      .get('/listings', { params: clean })
-      .then(({ data }) => setListings(data))
+      .get('/listings', { params: { ...clean, page: nextPage, limit: 8, sort: nextSort } })
+      .then(({ data }) => {
+        setListings(data.listings);
+        setPage(data.page);
+        setPagination({ page: data.page, totalPages: data.totalPages, total: data.total });
+      })
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    search(initial);
+    search(initial, 1, 'newest');
   }, []);
 
-  const set = (key) => (e) => setFilters({ ...filters, [key]: e.target.value });
+  const set = (key) => (e) => setFilters((current) => ({ ...current, [key]: e.target.value }));
 
   const submit = (e) => {
     e.preventDefault();
-    search(filters);
+    search(filters, 1, sort);
+  };
+
+  const changeSort = (e) => {
+    const nextSort = e.target.value;
+    setSort(nextSort);
+    search(filters, 1, nextSort);
   };
 
   return (
@@ -52,6 +65,17 @@ export default function Home() {
       </div>
 
       {error && <p className="error">{error}</p>}
+      <div className="row-between listing-controls">
+        <p className="muted">{pagination.total} stays found</p>
+        <label className="sort-control">Sort by
+          <select value={sort} onChange={changeSort} disabled={loading}>
+            <option value="newest">Newest</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="rating">Top rated</option>
+          </select>
+        </label>
+      </div>
       {loading ? (
         <Loader />
       ) : listings.length === 0 ? (
@@ -60,6 +84,17 @@ export default function Home() {
         <div className="grid">
           {listings.map((l) => <ListingCard key={l._id} listing={l} />)}
         </div>
+      )}
+      {!loading && pagination.totalPages > 0 && (
+        <nav className="pagination" aria-label="Listing pages">
+          <button className="btn btn-ghost" type="button" onClick={() => search(filters, page - 1, sort)} disabled={page <= 1}>
+            Previous
+          </button>
+          <span className="muted" aria-live="polite">Page {page} of {pagination.totalPages}</span>
+          <button className="btn btn-ghost" type="button" onClick={() => search(filters, page + 1, sort)} disabled={page >= pagination.totalPages}>
+            Next
+          </button>
+        </nav>
       )}
     </section>
   );

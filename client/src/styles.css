@@ -89,6 +89,7 @@ label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; colo
 .reviews { margin-top: 32px; }
 .review { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .review p { margin: 6px 0 0; }
+.review-edit-form { max-width: 520px; margin-top: 12px; }
 .stars { display: flex; gap: 2px; }
 .star { background: none; border: none; font-size: 1.5rem; color: #d9cfc4; cursor: pointer; padding: 0; }
 .star.on, .stars-static { color: #f2a33a; }
